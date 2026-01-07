@@ -138,9 +138,11 @@ def sturmmodus():
 # -----------------------------------------
 # GET: Sturmmodus abfragen (vom Pico)
 # -----------------------------------------
-@app.route("/api/get_sturmmodus", methods=["GET"])
+@app.route("/api/get_modus", methods=["GET"])
 def get_sturmmodus():
-    return jsonify({"sturmmodus": aktueller_status})
+    return jsonify({
+        "sturmmodus": aktueller_status}
+    )
 
 
 if __name__ == "__main__":
