@@ -32,6 +32,7 @@ def receive_getdata():
         "orient": data.get("orient"),
         "voltage": data.get("voltage"),
         "current": data.get("current"),
+        "coordscheck": data.get("coordscheck"),
         "zeit": datetime.now().isoformat()
     })
 
