@@ -19,10 +19,10 @@ datenbank = []
 aktueller_status = False  # True = aktiviert, False = deaktiviert
 
 # Letzte Koordinaten (von der Website gesetzt)
-latest_coords = {
-    "latitude": None,
-    "longitude": None
-}
+latest_coords = {"latitude": None,"longitude": None}
+
+latest_motor_targets = {"motor1_target": None, "motor2_target": None}
+
 
 # ---------------------------
 # POST: Wetterdaten vom Pico
@@ -66,19 +66,19 @@ def set_motor_targets():
     data = request.get_json() or {}
 
     # akzeptiere verschiedene Key-Namen (falls du im Frontend anders sendest)
-    m1 = data.get("motor1-target", data.get("motor1-traget"))
-    m2 = data.get("motor2-target", data.get("motor2-target"))
+    m1 = data.get("motor1_target")
+    m2 = data.get("motor2_target")
 
     if m1 is None or m2 is None:
         return jsonify({"error": "motor1/motor2 fehlen"}), 400
 
-    latest_motor_targets["motor1-target"] = int(m1)
-    latest_motor_targets["motor2-target"] = int(m2)
+    latest_motor_targets["motor1_target"] = int(m1)
+    latest_motor_targets["motor2_target"] = int(m2)
 
     return jsonify({
         "status": "ok",
-        "motor1-target": latest_motor_targets["motor1-target"],
-        "motor2-target": latest_motor_targets["motor2-target"]
+        "motor1_target": latest_motor_targets["motor1_target"],
+        "motor2_target": latest_motor_targets["motor2_target"]
     }), 200
 
 
@@ -113,8 +113,8 @@ def coordscheck_get():
     return jsonify({
         "latitude": latest_coords.get("latitude"),
         "longitude": latest_coords.get("longitude"),
-        "motor1-target": latest_motor_targets.get("motor1-target"),
-        "motor2-target": latest_motor_targets.get("motor2-target")
+        "motor1_target": latest_motor_targets.get("motor1_target"),
+        "motor2_target": latest_motor_targets.get("motor2_target")
     }), 200
 
 
