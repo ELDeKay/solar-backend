@@ -51,7 +51,7 @@ def get_data():
     return jsonify(datenbank)
     
 @app.route("/api/coordscheck", methods=["POST"])
-def koordinaten():
+def coordscheck():
     data = request.get_json()
 
     latitude = data.get("latitude")
