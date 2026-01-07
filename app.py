@@ -49,7 +49,17 @@ def receive_getdata():
 @app.route("/api/data", methods=["GET"])
 def get_data():
     return jsonify(datenbank)
+    
+@app.route("/api/koordinaten", methods=["POST"])
+def koordinaten():
+    data = request.get_json()
 
+    latitude = data.get("latitude")
+    longitude = data.get("longitude")
+
+    print("Empfangen:", latitude, longitude)
+
+    return jsonify({"status": "ok"}), 200
 
 # POST: Sturmmodus von der Website setzen
 @app.route("/api/sturmmodus", methods=["POST"])
