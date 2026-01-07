@@ -18,6 +18,10 @@ datenbank = []
 # Sturmmodus-Status
 aktueller_status = False  # True = aktiviert, False = deaktiviert
 
+latest_coords = {
+    "latitude": None,
+    "longitude": None
+}
 # POST: Wetterdaten vom Pico
 @app.route("/api/getdata", methods=["POST"])
 def receive_getdata():
@@ -49,6 +53,26 @@ def receive_getdata():
 @app.route("/api/data", methods=["GET"])
 def get_data():
     return jsonify(datenbank)
+
+@app.route("/api/coordsscheck", methods=["POST"])
+def set_koordinaten():
+    global latest_coords
+    data = request.get_json() or {}
+
+    lat = data.get("latitude")
+    lon = data.get("longitude")
+
+    if lat is None or lon is None:
+        return jsonify({"error": "latitude/longitude fehlen"}), 400
+
+    latest_coords["latitude"] = lat
+    latest_coords["longitude"] = lon
+
+    return jsonify({
+        "status": "ok",
+        "latitude": lat,
+        "longitude": lon
+    }), 200
     
 @app.route("/api/coordscheck", methods=["GET"])
 def coordscheck_get():
