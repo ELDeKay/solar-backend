@@ -32,7 +32,6 @@ def receive_getdata():
         "orient": data.get("orient"),
         "voltage": data.get("voltage"),
         "current": data.get("current"),
-        "power": data.get("power"),
         "zeit": datetime.now().isoformat()
     })
 
