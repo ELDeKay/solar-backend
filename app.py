@@ -113,8 +113,8 @@ def coordscheck_get():
     return jsonify({
         "latitude": latest_coords.get("latitude"),
         "longitude": latest_coords.get("longitude"),
-        "motor1_target": latest_motor_targets.get("motor1_target"),
-        "motor2_target": latest_motor_targets.get("motor2_target")
+        "motor1-target": latest_motor_targets.get("motor1-target"),
+        "motor2-target": latest_motor_targets.get("motor2-target")
     }), 200
 
 
