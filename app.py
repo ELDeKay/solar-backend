@@ -4,7 +4,13 @@ from datetime import datetime
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "https://mysolarfollower.onrender.com"
+        ]
+    }
+})
 
 # Wetterdaten im RAM
 datenbank = []
