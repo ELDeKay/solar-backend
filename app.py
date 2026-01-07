@@ -79,7 +79,6 @@ def coordscheck_get():
     return jsonify({
         "latitude": latest_coords.get("latitude"),
         "longitude": latest_coords.get("longitude"),
-        "sturmmodus": aktueller_status
     }), 200
 
 
