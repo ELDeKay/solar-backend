@@ -51,15 +51,13 @@ def get_data():
     return jsonify(datenbank)
     
 @app.route("/api/coordscheck", methods=["GET"])
-def coordscheck():
-    data = request.get_json()
+def coordscheck_get():
+    return jsonify({
+        "latitude": latest_coords["latitude"],
+        "longitude": latest_coords["longitude"],
+        "sturmmodus": aktueller_status
+    }), 200
 
-    latitude = data.get("latitude")
-    longitude = data.get("longitude")
-
-    print("Empfangen:", latitude, longitude)
-
-    return jsonify({"status": "ok"}), 200
 
 # POST: Sturmmodus von der Website setzen
 @app.route("/api/sturmmodus", methods=["POST"])
