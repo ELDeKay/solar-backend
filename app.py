@@ -18,11 +18,15 @@ datenbank = []
 # Sturmmodus-Status
 aktueller_status = False  # True = aktiviert, False = deaktiviert
 
+# Letzte Koordinaten (von der Website gesetzt)
 latest_coords = {
     "latitude": None,
     "longitude": None
 }
+
+# ---------------------------
 # POST: Wetterdaten vom Pico
+# ---------------------------
 @app.route("/api/getdata", methods=["POST"])
 def receive_getdata():
     data = request.get_json()
@@ -49,12 +53,19 @@ def receive_getdata():
     return jsonify({"status": "ok"}), 200
 
 
+# ---------------------------
 # GET: Wetterdaten abrufen
+# ---------------------------
 @app.route("/api/data", methods=["GET"])
 def get_data():
     return jsonify(datenbank)
 
-@app.route("/api/coordsscheck", methods=["POST"])
+
+# -----------------------------------------
+# POST: Koordinaten von Website empfangen
+# GET:  Koordinaten (und sturmmodus) an Pico
+# -----------------------------------------
+@app.route("/api/coordscheck", methods=["POST"])
 def set_koordinaten():
     global latest_coords
     data = request.get_json() or {}
@@ -65,29 +76,34 @@ def set_koordinaten():
     if lat is None or lon is None:
         return jsonify({"error": "latitude/longitude fehlen"}), 400
 
-    latest_coords["latitude"] = lat
-    latest_coords["longitude"] = lon
+    # als float speichern (sauber)
+    latest_coords["latitude"] = float(lat)
+    latest_coords["longitude"] = float(lon)
 
     return jsonify({
         "status": "ok",
-        "latitude": lat,
-        "longitude": lon
+        "latitude": latest_coords["latitude"],
+        "longitude": latest_coords["longitude"]
     }), 200
-    
+
+
 @app.route("/api/coordscheck", methods=["GET"])
 def coordscheck_get():
     return jsonify({
         "latitude": latest_coords.get("latitude"),
         "longitude": latest_coords.get("longitude"),
+        "sturmmodus": aktueller_status
     }), 200
 
 
+# -----------------------------------------
 # POST: Sturmmodus von der Website setzen
+# -----------------------------------------
 @app.route("/api/sturmmodus", methods=["POST"])
 def sturmmodus():
     global aktueller_status
 
-    data = request.get_json()
+    data = request.get_json() or {}
     status = data.get("aktiv")
 
     if not isinstance(status, bool):
@@ -97,7 +113,9 @@ def sturmmodus():
     return jsonify({"sturmmodus": aktueller_status}), 200
 
 
+# -----------------------------------------
 # GET: Sturmmodus abfragen (vom Pico)
+# -----------------------------------------
 @app.route("/api/get_sturmmodus", methods=["GET"])
 def get_sturmmodus():
     return jsonify({"sturmmodus": aktueller_status})
