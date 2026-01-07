@@ -60,6 +60,29 @@ def receive_getdata():
 def get_data():
     return jsonify(datenbank)
 
+# -----------------------------------------
+# ✅ NEU: POST Motor-Zielwerte von Website
+# -----------------------------------------
+@app.route("/api/motor_targets", methods=["POST"])
+def set_motor_targets():
+    data = request.get_json() or {}
+
+    # akzeptiere verschiedene Key-Namen (falls du im Frontend anders sendest)
+    m1 = data.get("motor1_target", data.get("motor1_traget"))
+    m2 = data.get("motor2_target", data.get("motor2_target"))
+
+    if m1 is None or m2 is None:
+        return jsonify({"error": "motor1/motor2 fehlen"}), 400
+
+    latest_motor_targets["motor1_target"] = int(m1)
+    latest_motor_targets["motor2_target"] = int(m2)
+
+    return jsonify({
+        "status": "ok",
+        "motor1_target": latest_motor_targets["motor1_target"],
+        "motor2_target": latest_motor_targets["motor2_target"]
+    }), 200
+
 
 # -----------------------------------------
 # POST: Koordinaten von Website empfangen
@@ -92,6 +115,8 @@ def coordscheck_get():
     return jsonify({
         "latitude": latest_coords.get("latitude"),
         "longitude": latest_coords.get("longitude"),
+        "motor1_target": latest_motor_targets.get("motor1_target"),
+        "motor2_target": latest_motor_targets.get("motor2_target")
     }), 200
 
 
