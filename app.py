@@ -50,7 +50,7 @@ def receive_getdata():
 def get_data():
     return jsonify(datenbank)
     
-@app.route("/api/koordinaten", methods=["POST"])
+@app.route("/api/coordscheck", methods=["POST"])
 def koordinaten():
     data = request.get_json()
 
