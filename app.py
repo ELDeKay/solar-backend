@@ -53,8 +53,8 @@ def get_data():
 @app.route("/api/coordscheck", methods=["GET"])
 def coordscheck_get():
     return jsonify({
-        "latitude": latest_coords["latitude"],
-        "longitude": latest_coords["longitude"],
+        "latitude": latest_coords.get("latitude"),
+        "longitude": latest_coords.get("longitude"),
         "sturmmodus": aktueller_status
     }), 200
 
