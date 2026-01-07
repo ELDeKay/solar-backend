@@ -121,9 +121,8 @@ def coordscheck_get():
 # -----------------------------------------
 # POST: Sturmmodus von der Website setzen
 # -----------------------------------------
-@app.route("/api/sturmmodus", methods=["POST"])
-def sturmmodus():
-    global aktueller_status
+@app.route("/api/manuell", methods=["POST"])
+def manuell():
 
     data = request.get_json() or {}
     status = data.get("aktiv")
@@ -132,16 +131,16 @@ def sturmmodus():
         return jsonify({"error": "Status muss true/false sein"}), 400
 
     aktueller_status = status
-    return jsonify({"sturmmodus": aktueller_status}), 200
+    return jsonify({"manuell": aktueller_status}), 200
 
 
 # -----------------------------------------
 # GET: Sturmmodus abfragen (vom Pico)
 # -----------------------------------------
 @app.route("/api/get_modus", methods=["GET"])
-def get_sturmmodus():
+def get_modus():
     return jsonify({
-        "sturmmodus": aktueller_status}
+        "manuell": aktueller_status}
     )
 
 
