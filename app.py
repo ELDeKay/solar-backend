@@ -42,8 +42,6 @@ def receive_getdata():
         "motor1": data.get("motor1"),
         "motor2": data.get("motor2"),
         "manuell": data.get("manuell"),
-        "tilt": data.get("motor2"),
-        "orient": data.get("motor1"),
         "voltage": data.get("voltage"),
         "current": data.get("current"),
         "coordscheck": data.get("coordscheck"),
@@ -68,19 +66,19 @@ def set_motor_targets():
     data = request.get_json() or {}
 
     # akzeptiere verschiedene Key-Namen (falls du im Frontend anders sendest)
-    m1 = data.get("motor1_target", data.get("motor1_traget"))
-    m2 = data.get("motor2_target", data.get("motor2_target"))
+    m1 = data.get("motor1-target", data.get("motor1-traget"))
+    m2 = data.get("motor2-target", data.get("motor2-target"))
 
     if m1 is None or m2 is None:
         return jsonify({"error": "motor1/motor2 fehlen"}), 400
 
-    latest_motor_targets["motor1_target"] = int(m1)
-    latest_motor_targets["motor2_target"] = int(m2)
+    latest_motor_targets["motor1-target"] = int(m1)
+    latest_motor_targets["motor2-target"] = int(m2)
 
     return jsonify({
         "status": "ok",
-        "motor1_target": latest_motor_targets["motor1_target"],
-        "motor2_target": latest_motor_targets["motor2_target"]
+        "motor1-target": latest_motor_targets["motor1-target"],
+        "motor2-target": latest_motor_targets["motor2-target"]
     }), 200
 
 
