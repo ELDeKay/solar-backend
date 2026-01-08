@@ -19,8 +19,7 @@ datenbank = []
 aktueller_status = False  # True = aktiviert, False = deaktiviert
 
 # Letzte Koordinaten (von der Website gesetzt)
-latest_coords = {"latitude": None,"longitude": None}
-
+latest_coords = {"latitude": None, "longitude": None}
 latest_motor_targets = {"motor1_target": None, "motor2_target": None}
 
 
@@ -63,24 +62,19 @@ def get_data():
 # -----------------------------------------
 @app.route("/api/motor_targets", methods=["POST"])
 def set_motor_targets():
+    global latest_motor_targets
     data = request.get_json() or {}
 
-    # akzeptiere verschiedene Key-Namen (falls du im Frontend anders sendest)
     m1 = data.get("motor1_target")
     m2 = data.get("motor2_target")
 
     if m1 is None or m2 is None:
-        return jsonify({"error": "motor1/motor2 fehlen"}), 400
+        return jsonify({"error": "motor1_target/motor2_target fehlen"}), 400
 
     latest_motor_targets["motor1_target"] = int(m1)
     latest_motor_targets["motor2_target"] = int(m2)
 
-    return jsonify({
-        "status": "ok",
-        "motor1_target": latest_motor_targets["motor1_target"],
-        "motor2_target": latest_motor_targets["motor2_target"]
-    }), 200
-
+    return jsonify({"status": "ok"}), 200
 
 # -----------------------------------------
 # POST: Koordinaten von Website empfangen
@@ -123,6 +117,7 @@ def coordscheck_get():
 # -----------------------------------------
 @app.route("/api/manuell", methods=["POST"])
 def manuell():
+    global aktueller_status
 
     data = request.get_json() or {}
     status = data.get("aktiv")
