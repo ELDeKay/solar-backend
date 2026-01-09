@@ -34,7 +34,7 @@ def receive_getdata():
         return jsonify({"error": "no data found"}), 400
 
     datenbank.append({
-        "wind": data.get("windstaerke"),
+        "wind": data.get("wind"),
         "sunrise": data.get("sunrise"),
         "sunset": data.get("sunset"),
         "sunhours": data.get("sunhours"),
