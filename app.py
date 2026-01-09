@@ -33,6 +33,9 @@ def receive_getdata():
     if data is None:
         return jsonify({"error": "no data found"}), 400
 
+    pico_zeit = data.get("zeit")  # vom Pico (z.B. "2026-01-10T12:34:56" oder "12:34:56")
+    server_zeit = datetime.now().isoformat()
+
     datenbank.append({
         "wind": data.get("wind"),
         "sunrise": data.get("sunrise"),
@@ -44,7 +47,10 @@ def receive_getdata():
         "voltage": data.get("voltage"),
         "current": data.get("current"),
         "coordscheck": data.get("coordscheck"),
-        "zeit": datetime.now().isoformat()
+
+        # ✅ Zeit: bevorzugt Pico, sonst Server
+        "zeit": pico_zeit or server_zeit,
+        "zeit_source": "pico" if pico_zeit else "server"
     })
 
     return jsonify({"status": "ok"}), 200
