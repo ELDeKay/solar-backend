@@ -35,6 +35,8 @@ def receive_getdata():
 
 
 
+    MAX_ENTRIES = 100
+    
     datenbank.append({
         "wind": data.get("wind"),
         "sunrise": data.get("sunrise"),
@@ -46,9 +48,15 @@ def receive_getdata():
         "voltage": data.get("voltage"),
         "current": data.get("current"),
         "coordscheck": data.get("coordscheck"),
-        "zeit": data.get"("zeit")
-
+    
+        # ✅ nur Pico-Zeit, kein Server-Fallback
+        "zeit": data.get("zeit")
     })
+    
+    # ✅ Datenbank begrenzen (RAM-sicher)
+    if len(datenbank) > MAX_ENTRIES:
+        datenbank.pop(0)
+
 
     return jsonify({"status": "ok"}), 200
 
