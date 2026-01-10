@@ -35,7 +35,7 @@ def receive_getdata():
 
 
 
-    MAX_ENTRIES = 100
+    MAX_ENTRIES = 1000
     
     datenbank.append({
         "wind": data.get("wind"),
