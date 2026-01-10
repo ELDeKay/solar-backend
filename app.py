@@ -119,7 +119,8 @@ def coordscheck_get():
         "latitude": latest_coords.get("latitude"),
         "longitude": latest_coords.get("longitude"),
         "motor1_target": latest_motor_targets.get("motor1_target"),
-        "motor2_target": latest_motor_targets.get("motor2_target")
+        "motor2_target": latest_motor_targets.get("motor2_target"),
+        "manuell": aktueller_status
     }), 200
 
 
@@ -138,16 +139,6 @@ def manuell():
 
     aktueller_status = status
     return jsonify({"manuell": aktueller_status}), 200
-
-
-# -----------------------------------------
-# GET: Sturmmodus abfragen (vom Pico)
-# -----------------------------------------
-@app.route("/api/get_modus", methods=["GET"])
-def get_modus():
-    return jsonify({
-        "manuell": aktueller_status}
-    )
 
 
 if __name__ == "__main__":
