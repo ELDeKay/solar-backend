@@ -102,7 +102,7 @@ def set_koordinaten():
     if lat is None or lon is None:
         return jsonify({"error": "latitude/longitude fehlen"}), 400
     if powtrack is None:
-        return jsonify({"error": "ipadresse powtrack fehlt}"), 400
+        return jsonify({"error": "ipadresse powtrack fehlt"}), 400
 
     # als float speichern (sauber)
     latest_coords["latitude"] = float(lat)
