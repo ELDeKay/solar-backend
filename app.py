@@ -20,6 +20,7 @@ aktueller_status = False  # True = aktiviert, False = deaktiviert
 
 # Letzte Koordinaten (von der Website gesetzt)
 latest_coords = {"latitude": None, "longitude": None}
+latest_ip = {"powertracker": None}
 latest_motor_targets = {"motor1_target": None, "motor2_target": None}
 
 
@@ -73,7 +74,6 @@ def get_data():
 # -----------------------------------------
 @app.route("/api/motor_targets", methods=["POST"])
 def set_motor_targets():
-    global latest_motor_targets
     data = request.get_json() or {}
 
     m1 = data.get("motor1_target")
@@ -93,23 +93,27 @@ def set_motor_targets():
 # -----------------------------------------
 @app.route("/api/coordscheck", methods=["POST"])
 def set_koordinaten():
-    global latest_coords
     data = request.get_json() or {}
 
     lat = data.get("latitude")
     lon = data.get("longitude")
+    powtrack = data.get("powertracker)"
 
     if lat is None or lon is None:
         return jsonify({"error": "latitude/longitude fehlen"}), 400
+    if powtrack is None:
+        return jsonify({"error: ipadresse powtrack fehlt}"), 400
 
     # als float speichern (sauber)
     latest_coords["latitude"] = float(lat)
     latest_coords["longitude"] = float(lon)
+    latest_ip["powertracker] = str(powtrack)
 
     return jsonify({
         "status": "ok",
         "latitude": latest_coords["latitude"],
         "longitude": latest_coords["longitude"]
+        "powertracker" : latest_ip["powertracker"]
     }), 200
 
 
@@ -118,6 +122,7 @@ def coordscheck_get():
     return jsonify({
         "latitude": latest_coords.get("latitude"),
         "longitude": latest_coords.get("longitude"),
+        "powertracker": latest_ip.get("powertracker"),
         "motor1_target": latest_motor_targets.get("motor1_target"),
         "motor2_target": latest_motor_targets.get("motor2_target"),
         "manuell": aktueller_status
@@ -129,8 +134,6 @@ def coordscheck_get():
 # -----------------------------------------
 @app.route("/api/manuell", methods=["POST"])
 def manuell():
-    global aktueller_status
-
     data = request.get_json() or {}
     status = data.get("aktiv")
 
