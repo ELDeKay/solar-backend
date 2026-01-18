@@ -31,6 +31,7 @@ latest_motor_targets = {
     "motor2_target": None
 }
 
+# wird als "Signal" genutzt (einmalig)
 latest_factory_reset = False
 
 
@@ -89,11 +90,15 @@ def set_motor_targets():
     latest_motor_targets["motor1_target"] = int(m1)
     latest_motor_targets["motor2_target"] = int(m2)
 
-    return jsonify({"status": "ok"}), 200
+    return jsonify({
+        "status": "ok",
+        "motor1_target": latest_motor_targets["motor1_target"],
+        "motor2_target": latest_motor_targets["motor2_target"]
+    }), 200
 
 
 # ---------------------------
-# POST: Koordinaten + IP + Factory Reset
+# POST: Koordinaten / IP / Factory Reset (alles optional)
 # ---------------------------
 @app.route("/api/coordscheck", methods=["POST"])
 def set_koordinaten():
@@ -106,31 +111,49 @@ def set_koordinaten():
     powtrack = data.get("powertracker")
     factory_reset = data.get("factory_reset")
 
-    if lat is None or lon is None:
-        return jsonify({"error": "latitude/longitude fehlen"}), 400
+    updated = False
 
-    if powtrack is None:
-        return jsonify({"error": "ipadresse powertracker fehlt"}), 400
+    # --- Geo: nur speichern, wenn beide Werte vorhanden sind ---
+    if lat is not None or lon is not None:
+        # wenn einer fehlt -> 400 (Geo-Button sollte beide senden)
+        if lat is None or lon is None:
+            return jsonify({"error": "Bitte latitude UND longitude senden"}), 400
+        latest_coords["latitude"] = float(lat)
+        latest_coords["longitude"] = float(lon)
+        updated = True
 
-    latest_coords["latitude"] = float(lat)
-    latest_coords["longitude"] = float(lon)
-    latest_ip["powertracker"] = str(powtrack)
+    # --- IP: speichern, wenn vorhanden ---
+    if powtrack is not None:
+        latest_ip["powertracker"] = str(powtrack).strip()
+        updated = True
 
+    # --- Factory Reset: speichern, wenn bool ---
     if isinstance(factory_reset, bool):
         latest_factory_reset = factory_reset
+        updated = True
+
+    # Wenn gar nichts Sinnvolles kam -> 400
+    if not updated:
+        return jsonify({"error": "Keine gültigen Daten im Body"}), 400
 
     return jsonify({
         "status": "ok",
+        "latitude": latest_coords.get("latitude"),
+        "longitude": latest_coords.get("longitude"),
+        "powertracker": latest_ip.get("powertracker"),
         "factory_reset": latest_factory_reset
     }), 200
 
 
 # ---------------------------
 # GET: Alles für den Pico
+# (factory_reset wird nach Auslieferung zurückgesetzt -> One-Shot)
 # ---------------------------
 @app.route("/api/coordscheck", methods=["GET"])
 def coordscheck_get():
-    return jsonify({
+    global latest_factory_reset
+
+    payload = {
         "latitude": latest_coords.get("latitude"),
         "longitude": latest_coords.get("longitude"),
         "powertracker": latest_ip.get("powertracker"),
@@ -138,7 +161,12 @@ def coordscheck_get():
         "motor2_target": latest_motor_targets.get("motor2_target"),
         "manuell": aktueller_status,
         "factory_reset": latest_factory_reset
-    }), 200
+    }
+
+    # One-shot: Pico soll Reset nur einmal sehen
+    latest_factory_reset = False
+
+    return jsonify(payload), 200
 
 
 # ---------------------------
