@@ -97,22 +97,22 @@ def set_koordinaten():
 
     lat = data.get("latitude")
     lon = data.get("longitude")
-    powtrack = data.get("powertracker)"
+    powtrack = data.get("powertracker")
 
     if lat is None or lon is None:
         return jsonify({"error": "latitude/longitude fehlen"}), 400
     if powtrack is None:
-        return jsonify({"error: ipadresse powtrack fehlt}"), 400
+        return jsonify({"error": "ipadresse powtrack fehlt}"), 400
 
     # als float speichern (sauber)
     latest_coords["latitude"] = float(lat)
     latest_coords["longitude"] = float(lon)
-    latest_ip["powertracker] = str(powtrack)
+    latest_ip["powertracker"] = str(powtrack)
 
     return jsonify({
         "status": "ok",
         "latitude": latest_coords["latitude"],
-        "longitude": latest_coords["longitude"]
+        "longitude": latest_coords["longitude"],
         "powertracker" : latest_ip["powertracker"]
     }), 200
 
@@ -134,6 +134,7 @@ def coordscheck_get():
 # -----------------------------------------
 @app.route("/api/manuell", methods=["POST"])
 def manuell():
+    global aktueller_status
     data = request.get_json() or {}
     status = data.get("aktiv")
 
