@@ -15,7 +15,7 @@ CORS(app, resources={
 datenbank = []
 
 aktueller_status = False  # manuell / automatisch
-snomode = False
+snowmode = False
 
 latest_coords = {
     "latitude": None,
