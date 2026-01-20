@@ -196,7 +196,7 @@ def manuell():
         # optional: calibration
     if "calibration" in data:
         calib = data.get("calibration")
-        if not isinstance(status, bool):
+        if not isinstance(calib, bool):
             return jsonify({"error": "calibration muss true/false sein"}), 400
         calibration = calib
 
