@@ -158,6 +158,11 @@ def set_koordinaten_und_ip():
 # ---------------------------
 @app.route("/api/coordscheck", methods=["GET"])
 def coordscheck_get():
+    global calibration
+
+    calib_value = calibration
+    calibration = False  # 🔥 WICHTIG: Event verbrauchen
+
     return jsonify({
         "latitude": latest_coords.get("latitude"),
         "longitude": latest_coords.get("longitude"),
@@ -167,7 +172,7 @@ def coordscheck_get():
         "manuell": aktueller_status,
         "factory_reset": latest_factory_reset,
         "snowmode": snowmode,
-        "calibration": calibration
+        "calibration": calib_value
     }), 200
 
 
@@ -207,23 +212,22 @@ def manuell():
 
 
 @app.route("/api/calibra", methods=["POST"])
-def calibra():
-
+def calibration_post():
     global calibration
+
     data = request.get_json(silent=True) or {}
 
-    if "calibration" in data:
-        calib = data.get("calibration")
-        if not isinstance(calib, bool):
-            return jsonify({"error": "calibration muss true/false sein"}), 400
-        calibration = calib
-        
-    if ("calibration" not in data):
+    if "calibration" not in data:
         return jsonify({"error": "Sende 'calibration'."}), 400
 
-    return jsonify({
-        "calibration": calibration
-    }), 200
+    value = data.get("calibration")
+
+    if value is not True:
+        return jsonify({"error": "calibration muss true sein"}), 400
+
+    calibration = True
+
+    return jsonify({"status": "ok"}), 200
 
 # ---------------------------
 # Start
