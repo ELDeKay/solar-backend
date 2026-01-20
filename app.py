@@ -174,26 +174,27 @@ def coordscheck_get():
 # ---------------------------
 @app.route("/api/manuell", methods=["POST"])
 def manuell():
-    global aktueller_status
-    global snowmode
+    global aktueller_status, snowmode
 
     data = request.get_json(silent=True) or {}
 
-    status = data.get("aktiv")
-    snow = data.get("snowmode")
+    # optional: manuell
+    if "aktiv" in data:
+        status = data.get("aktiv")
+        if not isinstance(status, bool):
+            return jsonify({"error": "aktiv muss true/false sein"}), 400
+        aktueller_status = status
 
-    # Manuell ist Pflicht (weil dieser Endpoint so heißt)
-    if not isinstance(status, bool):
-        return jsonify({"error": "aktiv muss true/false sein"}), 400
-
-    aktueller_status = status
-
-    # snowmode ist optional: nur setzen, wenn mitgeschickt
-    if snow is not None:
+    # optional: snowmode
+    if "snowmode" in data:
+        snow = data.get("snowmode")
         if not isinstance(snow, bool):
             return jsonify({"error": "snowmode muss true/false sein"}), 400
-            
-    snowmode = snow
+        snowmode = snow
+
+    # wenn gar nichts Sinnvolles geschickt wurde
+    if ("aktiv" not in data) and ("snowmode" not in data):
+        return jsonify({"error": "Sende 'aktiv' und/oder 'snowmode'."}), 400
 
     return jsonify({
         "manuell": aktueller_status,
