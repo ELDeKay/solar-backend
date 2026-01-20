@@ -204,7 +204,7 @@ def manuell():
         "manuell": aktueller_status,
         "snowmode": snowmode
     }), 200
-
+@app.route("/api/calibra", methods=["POST"])
 def calibra();
 
     global calib
