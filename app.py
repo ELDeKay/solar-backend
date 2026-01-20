@@ -166,7 +166,8 @@ def coordscheck_get():
         "motor2_target": latest_motor_targets.get("motor2_target"),
         "manuell": aktueller_status,
         "factory_reset": latest_factory_reset,
-        "snowmode": snowmode
+        "snowmode": snowmode,
+        "calibration": calibration
     }), 200
 
 
