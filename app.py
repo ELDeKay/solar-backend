@@ -205,7 +205,7 @@ def manuell():
         "snowmode": snowmode
     }), 200
 
-def calib();
+def calibra();
 
     global calib
     data = get.request.get_json(silent=True) or {}
