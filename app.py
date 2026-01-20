@@ -15,6 +15,7 @@ CORS(app, resources={
 datenbank = []
 
 aktueller_status = False  # manuell / automatisch
+snomode = False
 
 latest_coords = {
     "latitude": None,
@@ -173,15 +174,30 @@ def coordscheck_get():
 @app.route("/api/manuell", methods=["POST"])
 def manuell():
     global aktueller_status
+    global snowmode
 
     data = request.get_json(silent=True) or {}
-    status = data.get("aktiv")
 
+    status = data.get("aktiv")
+    snow = data.get("snowmode")
+
+    # Manuell ist Pflicht (weil dieser Endpoint so heißt)
     if not isinstance(status, bool):
-        return jsonify({"error": "Status muss true/false sein"}), 400
+        return jsonify({"error": "aktiv muss true/false sein"}), 400
 
     aktueller_status = status
-    return jsonify({"manuell": aktueller_status}), 200
+
+    # snowmode ist optional: nur setzen, wenn mitgeschickt
+    if snow is not None:
+        if not isinstance(snow, bool):
+            return jsonify({"error": "snowmode muss true/false sein"}), 400
+            
+    snowmode = snow
+
+    return jsonify({
+        "manuell": aktueller_status,
+        "snowmode": snowmode
+    }), 200
 
 
 # ---------------------------
