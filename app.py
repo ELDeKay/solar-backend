@@ -204,11 +204,13 @@ def manuell():
         "manuell": aktueller_status,
         "snowmode": snowmode
     }), 200
+
+
 @app.route("/api/calibra", methods=["POST"])
 def calibra():
 
-    global calib
-    data = get.request.get_json(silent=True) or {}
+    global calibration
+    data = request.get_json(silent=True) or {}
 
     if "calibration" in data:
         calib = data.get("calibration")
