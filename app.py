@@ -205,7 +205,7 @@ def manuell():
         "snowmode": snowmode
     }), 200
 @app.route("/api/calibra", methods=["POST"])
-def calibra();
+def calibra():
 
     global calib
     data = get.request.get_json(silent=True) or {}
