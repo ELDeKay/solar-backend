@@ -176,7 +176,7 @@ def coordscheck_get():
 # ---------------------------
 @app.route("/api/manuell", methods=["POST"])
 def manuell():
-    global aktueller_status, snowmode, calibration
+    global aktueller_status, snowmode
 
     data = request.get_json(silent=True) or {}
 
@@ -194,23 +194,34 @@ def manuell():
             return jsonify({"error": "snowmode muss true/false sein"}), 400
         snowmode = snow
         
-        # optional: calibration
+
+
+    # wenn gar nichts Sinnvolles geschickt wurde
+    if ("aktiv" not in data) and ("snowmode" not in data):
+        return jsonify({"error": "Sende 'aktiv' und/oder 'snowmode'."}), 400
+
+    return jsonify({
+        "manuell": aktueller_status,
+        "snowmode": snowmode
+    }), 200
+
+def calib();
+
+    global calib
+    data = get.request.get_json(silent=True) or {}
+
     if "calibration" in data:
         calib = data.get("calibration")
         if not isinstance(calib, bool):
             return jsonify({"error": "calibration muss true/false sein"}), 400
         calibration = calib
-
-    # wenn gar nichts Sinnvolles geschickt wurde
-    if ("aktiv" not in data) and ("snowmode" not in data) and ("calibration" not in data):
-        return jsonify({"error": "Sende 'aktiv' und/oder 'snowmode' und/oder 'calibration'."}), 400
+        
+    if ("calibration" not in data):
+        return jsonify({"error": "Sende 'calibration'."}), 400
 
     return jsonify({
-        "manuell": aktueller_status,
-        "snowmode": snowmode,
         "calibration": calibration
     }), 200
-
 
 # ---------------------------
 # Start
