@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
+import time
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -33,6 +34,9 @@ latest_motor_targets = {
 }
 
 latest_factory_reset = False
+
+# ✅ Heartbeat (Website lebt?)
+last_heartbeat = 0.0  # unix time in seconds
 
 
 # ---------------------------
@@ -97,12 +101,17 @@ def set_motor_targets():
 
 
 # ---------------------------
+# ✅ POST: Heartbeat von Website (Steuerung.html)
+# ---------------------------
+@app.route("/api/heartbeat", methods=["POST"])
+def heartbeat():
+    global last_heartbeat
+    last_heartbeat = time.time()
+    return jsonify({"status": "ok"}), 200
+
+
+# ---------------------------
 # POST: Koordinaten +/oder IP +/oder Factory Reset
-# (passt zu deiner neuen einstellungen.html:
-#  - Geo senden: {latitude, longitude}
-#  - IP senden: {powertracker}
-#  - Factory: {factory_reset:true}
-#  - Kombinationen sind erlaubt)
 # ---------------------------
 @app.route("/api/coordscheck", methods=["POST"])
 def set_koordinaten_und_ip():
@@ -154,11 +163,17 @@ def set_koordinaten_und_ip():
 
 # ---------------------------
 # GET: Alles für den Pico
-# (Pico holt hier Geo + IP + MotorTargets + manuell + factory_reset)
+# (Pico holt hier Geo + IP + MotorTargets + manuell + factory_reset + snowmode + calibration)
 # ---------------------------
 @app.route("/api/coordscheck", methods=["GET"])
 def coordscheck_get():
-    global calibration
+    global calibration, aktueller_status, snowmode, last_heartbeat
+
+    # ✅ Auto-Reset wenn Website weg ist (kein Heartbeat > 60s)
+    if aktueller_status or snowmode:
+        if last_heartbeat == 0 or (time.time() - last_heartbeat) > 60:
+            aktueller_status = False
+            snowmode = False
 
     calib_value = calibration
     calibration = False  # 🔥 WICHTIG: Event verbrauchen
@@ -198,8 +213,6 @@ def manuell():
         if not isinstance(snow, bool):
             return jsonify({"error": "snowmode muss true/false sein"}), 400
         snowmode = snow
-        
-
 
     # wenn gar nichts Sinnvolles geschickt wurde
     if ("aktiv" not in data) and ("snowmode" not in data):
@@ -211,6 +224,9 @@ def manuell():
     }), 200
 
 
+# ---------------------------
+# POST: Calibration Event (Paneel Button)
+# ---------------------------
 @app.route("/api/calibra", methods=["POST"])
 def calibration_post():
     global calibration
@@ -228,6 +244,7 @@ def calibration_post():
     calibration = True
 
     return jsonify({"status": "ok"}), 200
+
 
 # ---------------------------
 # Start
