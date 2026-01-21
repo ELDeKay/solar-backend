@@ -2,8 +2,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import time
-from datetime import datetime
-
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -20,23 +18,10 @@ datenbank = []
 aktueller_status = False  # manuell / automatisch
 snowmode = False
 calibration = False
-last_heartbeat_ts = None
 
-
-latest_coords = {
-    "latitude": None,
-    "longitude": None
-}
-
-latest_ip = {
-    "powertracker": None
-}
-
-latest_motor_targets = {
-    "motor1_target": None,
-    "motor2_target": None
-}
-
+latest_coords = {"latitude": None, "longitude": None}
+latest_ip = {"powertracker": None}
+latest_motor_targets = {"motor1_target": None, "motor2_target": None}
 latest_factory_reset = False
 
 # ✅ Heartbeat (Website lebt?)
@@ -105,13 +90,21 @@ def set_motor_targets():
 
 
 # ---------------------------
-# ✅ POST: Heartbeat von Website (Steuerung.html)
+# ✅ POST/OPTIONS: Heartbeat von Website (Steuerung.html)
 # ---------------------------
-@app.route("/api/heartbeat", methods=["POST"])
+@app.route("/api/heartbeat", methods=["POST", "OPTIONS"])
 def heartbeat():
     global last_heartbeat
+
+    # Preflight für CORS
+    if request.method == "OPTIONS":
+        return ("", 200)
+
+    # JSON ist optional – wir werten es nicht streng aus
+    _data = request.get_json(silent=True) or {}
+
     last_heartbeat = time.time()
-    return jsonify({"status": "ok"}), 200
+    return jsonify({"status": "ok", "last_heartbeat": last_heartbeat}), 200
 
 
 # ---------------------------
@@ -123,13 +116,11 @@ def set_koordinaten_und_ip():
 
     data = request.get_json(silent=True) or {}
 
-    # optional
     lat = data.get("latitude")
     lon = data.get("longitude")
     powtrack = data.get("powertracker")
     factory_reset = data.get("factory_reset")
 
-    # Geo: nur wenn BEIDE da sind
     if lat is not None or lon is not None:
         if lat is None or lon is None:
             return jsonify({"error": "latitude und longitude müssen zusammen gesendet werden"}), 400
@@ -139,20 +130,17 @@ def set_koordinaten_und_ip():
         except (TypeError, ValueError):
             return jsonify({"error": "latitude/longitude müssen Zahlen sein"}), 400
 
-    # IP: nur wenn vorhanden
     if powtrack is not None:
         powtrack = str(powtrack).strip()
         if powtrack == "":
             return jsonify({"error": "powertracker darf nicht leer sein"}), 400
         latest_ip["powertracker"] = powtrack
 
-    # Factory Reset: wenn bool
     if factory_reset is not None:
         if not isinstance(factory_reset, bool):
             return jsonify({"error": "factory_reset muss true/false sein"}), 400
         latest_factory_reset = factory_reset
 
-    # Wenn gar nichts Sinnvolles kam:
     if (lat is None and lon is None and powtrack is None and factory_reset is None):
         return jsonify({"error": "keine gültigen Felder gesendet"}), 400
 
@@ -167,20 +155,19 @@ def set_koordinaten_und_ip():
 
 # ---------------------------
 # GET: Alles für den Pico
-# (Pico holt hier Geo + IP + MotorTargets + manuell + factory_reset + snowmode + calibration)
 # ---------------------------
 @app.route("/api/coordscheck", methods=["GET"])
 def coordscheck_get():
     global calibration, aktueller_status, snowmode, last_heartbeat
 
     # ✅ Auto-Reset wenn Website weg ist (kein Heartbeat > 60s)
-    if aktueller_status or snowmode:
-        if last_heartbeat == 0 or (time.time() - last_heartbeat) > 60:
+    if (aktueller_status or snowmode):
+        if last_heartbeat == 0.0 or (time.time() - last_heartbeat) > 60:
             aktueller_status = False
             snowmode = False
 
     calib_value = calibration
-    calibration = False  # 🔥 WICHTIG: Event verbrauchen
+    calibration = False  # Event verbrauchen
 
     return jsonify({
         "latitude": latest_coords.get("latitude"),
@@ -204,28 +191,22 @@ def manuell():
 
     data = request.get_json(silent=True) or {}
 
-    # optional: manuell
     if "aktiv" in data:
         status = data.get("aktiv")
         if not isinstance(status, bool):
             return jsonify({"error": "aktiv muss true/false sein"}), 400
         aktueller_status = status
 
-    # optional: snowmode
     if "snowmode" in data:
         snow = data.get("snowmode")
         if not isinstance(snow, bool):
             return jsonify({"error": "snowmode muss true/false sein"}), 400
         snowmode = snow
 
-    # wenn gar nichts Sinnvolles geschickt wurde
     if ("aktiv" not in data) and ("snowmode" not in data):
         return jsonify({"error": "Sende 'aktiv' und/oder 'snowmode'."}), 400
 
-    return jsonify({
-        "manuell": aktueller_status,
-        "snowmode": snowmode
-    }), 200
+    return jsonify({"manuell": aktueller_status, "snowmode": snowmode}), 200
 
 
 # ---------------------------
@@ -240,32 +221,11 @@ def calibration_post():
     if "calibration" not in data:
         return jsonify({"error": "Sende 'calibration'."}), 400
 
-    value = data.get("calibration")
-
-    if value is not True:
+    if data.get("calibration") is not True:
         return jsonify({"error": "calibration muss true sein"}), 400
 
     calibration = True
-
     return jsonify({"status": "ok"}), 200
-
-@app.route("/api/heartbeat", methods=["POST", "OPTIONS"])
-def heartbeat():
-    global last_heartbeat_ts
-
-    # Preflight für CORS
-    if request.method == "OPTIONS":
-        return ("", 200)
-
-    data = request.get_json(silent=True) or {}
-    page = data.get("page", "")
-
-    # optionaler Check
-    if page != "steuerung":
-        return jsonify({"error": "invalid page"}), 400
-
-    last_heartbeat_ts = datetime.utcnow().isoformat()
-    return jsonify({"status": "ok", "last_heartbeat_ts": last_heartbeat_ts}), 200
 
 
 # ---------------------------
