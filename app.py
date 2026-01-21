@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import time
+from datetime import datetime
+
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -18,6 +20,8 @@ datenbank = []
 aktueller_status = False  # manuell / automatisch
 snowmode = False
 calibration = False
+last_heartbeat_ts = None
+
 
 latest_coords = {
     "latitude": None,
@@ -244,6 +248,24 @@ def calibration_post():
     calibration = True
 
     return jsonify({"status": "ok"}), 200
+
+@app.route("/api/heartbeat", methods=["POST", "OPTIONS"])
+def heartbeat():
+    global last_heartbeat_ts
+
+    # Preflight für CORS
+    if request.method == "OPTIONS":
+        return ("", 200)
+
+    data = request.get_json(silent=True) or {}
+    page = data.get("page", "")
+
+    # optionaler Check
+    if page != "steuerung":
+        return jsonify({"error": "invalid page"}), 400
+
+    last_heartbeat_ts = datetime.utcnow().isoformat()
+    return jsonify({"status": "ok", "last_heartbeat_ts": last_heartbeat_ts}), 200
 
 
 # ---------------------------
