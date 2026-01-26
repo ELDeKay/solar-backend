@@ -16,13 +16,13 @@ CORS(app, resources={
 datenbank = []
 
 aktueller_status = False  # manuell / automatisch
-snowmode = False
+schneeModus = False
 calibration = False
 
-latest_coords = {"latitude": None, "longitude": None}
-latest_ip = {"powertracker": None}
-latest_motor_targets = {"motor1_target": None, "motor2_target": None}
-latest_factory_reset = False
+letzte_coord = {"latitude": None, "longitude": None}
+latest_ip = {"ipWLANschuko": None}
+latest_motor_Zielwert = {"motor1_Zielwert": None, "motor2_Zielwert": None}
+latest_werkseinstellungbool = False
 
 # ✅ Heartbeat (Website lebt?)
 last_heartbeat = 0.0  # unix time in seconds
@@ -49,7 +49,7 @@ def receive_getdata():
         "manuell": data.get("manuell"),
         "voltage": data.get("voltage"),
         "current": data.get("current"),
-        "coordscheck": data.get("coordscheck"),
+        "einstellungen": data.get("einstellungen"),
         "zeit": data.get("zeit")  # Pico-Zeit
     })
 
@@ -70,21 +70,23 @@ def get_data():
 # ---------------------------
 # POST: Motor-Zielwerte von Website
 # ---------------------------
-@app.route("/api/motor_targets", methods=["POST"])
-def set_motor_targets():
+@app.route("/api/motor_Zielwert", methods=["POST"])
+def set_motor_Zielwert():
     data = request.get_json(silent=True) or {}
 
-    m1 = data.get("motor1_target")
-    m2 = data.get("motor2_target")
+    m1 = data.get("motor1_Zielwert")
+    m2 = data.get("motor2_Zielwert")
 
-    if m1 is None or m2 is None:
-        return jsonify({"error": "motor1_target/motor2_target fehlen"}), 400
+    if m1 is None and m2 is None:
+        return jsonify({"error": "motor1_Zielwert/motor2_Zielwert fehlen"}), 400
 
     try:
-        latest_motor_targets["motor1_target"] = int(m1)
-        latest_motor_targets["motor2_target"] = int(m2)
+        if m1 is not None:
+            latest_motor_Zielwert["motor1_Zielwert"] = int(m1)
+        if m2 is not None:
+            latest_motor_Zielwert["motor2_Zielwert"] = int(m2)
     except (TypeError, ValueError):
-        return jsonify({"error": "motor targets müssen Integer sein"}), 400
+        return jsonify({"error": "Motor Zielwerte müssen Integer sein"}), 400
 
     return jsonify({"status": "ok"}), 200
 
@@ -110,74 +112,74 @@ def heartbeat():
 # ---------------------------
 # POST: Koordinaten +/oder IP +/oder Factory Reset
 # ---------------------------
-@app.route("/api/coordscheck", methods=["POST"])
+@app.route("/api/einstellungen", methods=["POST"])
 def set_koordinaten_und_ip():
-    global latest_factory_reset
+    global latest_werkseinstellungbool
 
     data = request.get_json(silent=True) or {}
 
     lat = data.get("latitude")
     lon = data.get("longitude")
-    powtrack = data.get("powertracker")
-    factory_reset = data.get("factory_reset")
+    ipWLAN = data.get("ipWLANschuko")
+    werkseinstellungbool = data.get("werkseinstellungbool")
 
     if lat is not None or lon is not None:
         if lat is None or lon is None:
             return jsonify({"error": "latitude und longitude müssen zusammen gesendet werden"}), 400
         try:
-            latest_coords["latitude"] = float(lat)
-            latest_coords["longitude"] = float(lon)
+            letzte_coord["latitude"] = float(lat)
+            letzte_coord["longitude"] = float(lon)
         except (TypeError, ValueError):
             return jsonify({"error": "latitude/longitude müssen Zahlen sein"}), 400
 
-    if powtrack is not None:
-        powtrack = str(powtrack).strip()
-        if powtrack == "":
-            return jsonify({"error": "powertracker darf nicht leer sein"}), 400
-        latest_ip["powertracker"] = powtrack
+    if ipWLAN is not None:
+        ipWLAN = str(ipWLAN).strip()
+        if ipWLAN == "":
+            return jsonify({"error": "ipWLANschuko darf nicht leer sein"}), 400
+        latest_ip["ipWLANschuko"] = ipWLAN
 
-    if factory_reset is not None:
-        if not isinstance(factory_reset, bool):
-            return jsonify({"error": "factory_reset muss true/false sein"}), 400
-        latest_factory_reset = factory_reset
+    if werkseinstellungbool is not None:
+        if not isinstance(werkseinstellungbool, bool):
+            return jsonify({"error": "werkseinstellungbool muss true/false sein"}), 400
+        latest_werkseinstellungbool = werkseinstellungbool
 
-    if (lat is None and lon is None and powtrack is None and factory_reset is None):
+    if (lat is None and lon is None and ipWLAN is None and werkseinstellungbool is None):
         return jsonify({"error": "keine gültigen Felder gesendet"}), 400
 
     return jsonify({
         "status": "ok",
-        "latitude": latest_coords.get("latitude"),
-        "longitude": latest_coords.get("longitude"),
-        "powertracker": latest_ip.get("powertracker"),
-        "factory_reset": latest_factory_reset
+        "latitude": letzte_coord.get("latitude"),
+        "longitude": letzte_coord.get("longitude"),
+        "ipWLANschuko": latest_ip.get("ipWLANschuko"),
+        "werkseinstellungbool": latest_werkseinstellungbool
     }), 200
 
 
 # ---------------------------
 # GET: Alles für den Pico
 # ---------------------------
-@app.route("/api/coordscheck", methods=["GET"])
-def coordscheck_get():
-    global calibration, aktueller_status, snowmode, last_heartbeat
+@app.route("/api/einstellungen", methods=["GET"])
+def einstellungen_get():
+    global calibration, aktueller_status, schneeModus, last_heartbeat
 
     # ✅ Auto-Reset wenn Website weg ist (kein Heartbeat > 60s)
-    if (aktueller_status or snowmode):
+    if (aktueller_status or schneeModus):
         if last_heartbeat == 0.0 or (time.time() - last_heartbeat) > 60:
             aktueller_status = False
-            snowmode = False
+            schneeModus = False
 
     calib_value = calibration
     calibration = False  # Event verbrauchen
 
     return jsonify({
-        "latitude": latest_coords.get("latitude"),
-        "longitude": latest_coords.get("longitude"),
-        "powertracker": latest_ip.get("powertracker"),
-        "motor1_target": latest_motor_targets.get("motor1_target"),
-        "motor2_target": latest_motor_targets.get("motor2_target"),
+        "latitude": letzte_coord.get("latitude"),
+        "longitude": letzte_coord.get("longitude"),
+        "ipWLANschuko": latest_ip.get("ipWLANschuko"),
+        "motor1_Zielwert": latest_motor_Zielwert.get("motor1_Zielwert"),
+        "motor2_Zielwert": latest_motor_Zielwert.get("motor2_Zielwert"),
         "manuell": aktueller_status,
-        "factory_reset": latest_factory_reset,
-        "snowmode": snowmode,
+        "werkseinstellungbool": latest_werkseinstellungbool,
+        "schneeModus": schneeModus,
         "calibration": calib_value
     }), 200
 
@@ -187,7 +189,7 @@ def coordscheck_get():
 # ---------------------------
 @app.route("/api/manuell", methods=["POST"])
 def manuell():
-    global aktueller_status, snowmode
+    global aktueller_status, schneeModus
 
     data = request.get_json(silent=True) or {}
 
@@ -197,16 +199,16 @@ def manuell():
             return jsonify({"error": "aktiv muss true/false sein"}), 400
         aktueller_status = status
 
-    if "snowmode" in data:
-        snow = data.get("snowmode")
+    if "schneeModus" in data:
+        snow = data.get("schneeModus")
         if not isinstance(snow, bool):
-            return jsonify({"error": "snowmode muss true/false sein"}), 400
-        snowmode = snow
+            return jsonify({"error": "schneeModus muss true/false sein"}), 400
+        schneeModus = snow
 
-    if ("aktiv" not in data) and ("snowmode" not in data):
-        return jsonify({"error": "Sende 'aktiv' und/oder 'snowmode'."}), 400
+    if ("aktiv" not in data) and ("schneeModus" not in data):
+        return jsonify({"error": "Sende 'aktiv' und/oder 'schneeModus'."}), 400
 
-    return jsonify({"manuell": aktueller_status, "snowmode": snowmode}), 200
+    return jsonify({"manuell": aktueller_status, "schneeModus": schneeModus}), 200
 
 
 # ---------------------------
