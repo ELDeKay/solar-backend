@@ -20,9 +20,9 @@ schneeModus = False
 calibration = False
 
 letzte_coord = {"latitude": None, "longitude": None}
-latest_ip = {"ipWLANschuko": None}
-latest_motor_Zielwert = {"motor1_Zielwert": None, "motor2_Zielwert": None}
-latest_werkseinstellungbool = False
+letzte_ip = {"ipWLANschuko": None}
+letzte_motor_Zielwert = {"motor1_Zielwert": None, "motor2_Zielwert": None}
+letzte_werkseinstellungbool = False
 
 # ✅ Heartbeat (Website lebt?)
 last_heartbeat = 0.0  # unix time in seconds
@@ -82,9 +82,9 @@ def set_motor_Zielwert():
 
     try:
         if m1 is not None:
-            latest_motor_Zielwert["motor1_Zielwert"] = int(m1)
+            letzte_motor_Zielwert["motor1_Zielwert"] = int(m1)
         if m2 is not None:
-            latest_motor_Zielwert["motor2_Zielwert"] = int(m2)
+            letzte_motor_Zielwert["motor2_Zielwert"] = int(m2)
     except (TypeError, ValueError):
         return jsonify({"error": "Motor Zielwerte müssen Integer sein"}), 400
 
@@ -114,7 +114,7 @@ def heartbeat():
 # ---------------------------
 @app.route("/api/einstellungen", methods=["POST"])
 def set_koordinaten_und_ip():
-    global latest_werkseinstellungbool
+    global letzte_werkseinstellungbool
 
     data = request.get_json(silent=True) or {}
 
@@ -136,12 +136,12 @@ def set_koordinaten_und_ip():
         ipWLAN = str(ipWLAN).strip()
         if ipWLAN == "":
             return jsonify({"error": "ipWLANschuko darf nicht leer sein"}), 400
-        latest_ip["ipWLANschuko"] = ipWLAN
+        letzte_ip["ipWLANschuko"] = ipWLAN
 
     if werkseinstellungbool is not None:
         if not isinstance(werkseinstellungbool, bool):
             return jsonify({"error": "werkseinstellungbool muss true/false sein"}), 400
-        latest_werkseinstellungbool = werkseinstellungbool
+        letzte_werkseinstellungbool = werkseinstellungbool
 
     if (lat is None and lon is None and ipWLAN is None and werkseinstellungbool is None):
         return jsonify({"error": "keine gültigen Felder gesendet"}), 400
@@ -150,8 +150,8 @@ def set_koordinaten_und_ip():
         "status": "ok",
         "latitude": letzte_coord.get("latitude"),
         "longitude": letzte_coord.get("longitude"),
-        "ipWLANschuko": latest_ip.get("ipWLANschuko"),
-        "werkseinstellungbool": latest_werkseinstellungbool
+        "ipWLANschuko": letzte_ip.get("ipWLANschuko"),
+        "werkseinstellungbool": letzte_werkseinstellungbool
     }), 200
 
 
@@ -174,11 +174,11 @@ def einstellungen_get():
     return jsonify({
         "latitude": letzte_coord.get("latitude"),
         "longitude": letzte_coord.get("longitude"),
-        "ipWLANschuko": latest_ip.get("ipWLANschuko"),
-        "motor1_Zielwert": latest_motor_Zielwert.get("motor1_Zielwert"),
-        "motor2_Zielwert": latest_motor_Zielwert.get("motor2_Zielwert"),
+        "ipWLANschuko": letzte_ip.get("ipWLANschuko"),
+        "motor1_Zielwert": letzte_motor_Zielwert.get("motor1_Zielwert"),
+        "motor2_Zielwert": letzte_motor_Zielwert.get("motor2_Zielwert"),
         "manuell": aktueller_status,
-        "werkseinstellungbool": latest_werkseinstellungbool,
+        "werkseinstellungbool": letzte_werkseinstellungbool,
         "schneeModus": schneeModus,
         "calibration": calib_value
     }), 200
