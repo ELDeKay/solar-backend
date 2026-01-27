@@ -15,9 +15,9 @@ CORS(app, resources={
 # ---------------------------
 datenbank = []
 
-aktueller_status = False  # manuell / automatisch
+manuell_status = False  # manuell / automatisch
 schneeModus = False
-calibration = False
+kalibrierung = False
 
 letzte_coord = {"latitude": None, "longitude": None}
 letzte_ip = {"ipWLANschuko": None}
@@ -41,14 +41,14 @@ def receive_getdata():
 
     datenbank.append({
         "wind": data.get("wind"),
-        "sunrise": data.get("sunrise"),
-        "sunset": data.get("sunset"),
-        "sunhours": data.get("sunhours"),
+        "sonneauf": data.get("sonneauf"),
+        "sonneunter": data.get("sonneunter"),
+        "sonnenstunden": data.get("sonnenstunden"),
         "motor1": data.get("motor1"),
         "motor2": data.get("motor2"),
         "manuell": data.get("manuell"),
-        "voltage": data.get("voltage"),
-        "current": data.get("current"),
+        "spannung": data.get("spannung"),
+        "ampere": data.get("ampere"),
         "einstellungen": data.get("einstellungen"),
         "zeit": data.get("zeit")  # Pico-Zeit
     })
@@ -160,16 +160,16 @@ def set_koordinaten_und_ip():
 # ---------------------------
 @app.route("/api/einstellungen", methods=["GET"])
 def einstellungen_get():
-    global calibration, aktueller_status, schneeModus, last_heartbeat
+    global kalibrierung, manuell_status, schneeModus, last_heartbeat
 
     # ✅ Auto-Reset wenn Website weg ist (kein Heartbeat > 60s)
-    if (aktueller_status or schneeModus):
+    if (manuell_status or schneeModus):
         if last_heartbeat == 0.0 or (time.time() - last_heartbeat) > 60:
-            aktueller_status = False
+            manuell_status = False
             schneeModus = False
 
-    calib_value = calibration
-    calibration = False  # Event verbrauchen
+    calib_value = kalibrierung
+    kalibrierung = False  # Event verbrauchen
 
     return jsonify({
         "latitude": letzte_coord.get("latitude"),
@@ -177,10 +177,10 @@ def einstellungen_get():
         "ipWLANschuko": letzte_ip.get("ipWLANschuko"),
         "motor1_Zielwert": letzte_motor_Zielwert.get("motor1_Zielwert"),
         "motor2_Zielwert": letzte_motor_Zielwert.get("motor2_Zielwert"),
-        "manuell": aktueller_status,
+        "manuell": manuell_status,
         "werkseinstellungbool": letzte_werkseinstellungbool,
         "schneeModus": schneeModus,
-        "calibration": calib_value
+        "kalibrierung": calib_value
     }), 200
 
 
@@ -189,7 +189,7 @@ def einstellungen_get():
 # ---------------------------
 @app.route("/api/manuell", methods=["POST"])
 def manuell():
-    global aktueller_status, schneeModus
+    global manuell_status, schneeModus
 
     data = request.get_json(silent=True) or {}
 
@@ -197,7 +197,7 @@ def manuell():
         status = data.get("aktiv")
         if not isinstance(status, bool):
             return jsonify({"error": "aktiv muss true/false sein"}), 400
-        aktueller_status = status
+        manuell_status = status
 
     if "schneeModus" in data:
         snow = data.get("schneeModus")
@@ -208,25 +208,25 @@ def manuell():
     if ("aktiv" not in data) and ("schneeModus" not in data):
         return jsonify({"error": "Sende 'aktiv' und/oder 'schneeModus'."}), 400
 
-    return jsonify({"manuell": aktueller_status, "schneeModus": schneeModus}), 200
+    return jsonify({"manuell": manuell_status, "schneeModus": schneeModus}), 200
 
 
 # ---------------------------
-# POST: Calibration Event (Paneel Button)
+# POST: kalibrierung Event (Paneel Button)
 # ---------------------------
 @app.route("/api/calibra", methods=["POST"])
-def calibration_post():
-    global calibration
+def kalibrierung_post():
+    global kalibrierung
 
     data = request.get_json(silent=True) or {}
 
-    if "calibration" not in data:
-        return jsonify({"error": "Sende 'calibration'."}), 400
+    if "kalibrierung" not in data:
+        return jsonify({"error": "Sende 'kalibrierung'."}), 400
 
-    if data.get("calibration") is not True:
-        return jsonify({"error": "calibration muss true sein"}), 400
+    if data.get("kalibrierung") is not True:
+        return jsonify({"error": "kalibrierung muss true sein"}), 400
 
-    calibration = True
+    kalibrierung = True
     return jsonify({"status": "ok"}), 200
 
 
