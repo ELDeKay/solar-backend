@@ -193,10 +193,10 @@ def manuell():
 
     data = request.get_json(silent=True) or {}
 
-    if "aktiv" in data:
-        status = data.get("aktiv")
+    if "manuellModus" in data:
+        status = data.get("manuellModus")
         if not isinstance(status, bool):
-            return jsonify({"error": "aktiv muss true/false sein"}), 400
+            return jsonify({"error": "manuellModus muss true/false sein"}), 400
         manuell_status = status
 
     if "schneeModus" in data:
@@ -205,8 +205,8 @@ def manuell():
             return jsonify({"error": "schneeModus muss true/false sein"}), 400
         schneeModus = snow
 
-    if ("aktiv" not in data) and ("schneeModus" not in data):
-        return jsonify({"error": "Sende 'aktiv' und/oder 'schneeModus'."}), 400
+    if ("manuellModus" not in data) and ("schneeModus" not in data):
+        return jsonify({"error": "Sende 'manuellModus' und/oder 'schneeModus'."}), 400
 
     return jsonify({"manuell": manuell_status, "schneeModus": schneeModus}), 200
 
