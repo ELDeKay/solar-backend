@@ -65,10 +65,8 @@ def receive_getdata():
         "sonnenstunden": data.get("sonnenstunden"),
         "motor1": data.get("motor1"),
         "motor2": data.get("motor2"),
-        "manuell": data.get("manuell"),
         "spannung": data.get("spannung"),
         "ampere": data.get("ampere"),
-        "einstellungen": data.get("einstellungen"),
         "zeit": data.get("zeit")
     })
 
