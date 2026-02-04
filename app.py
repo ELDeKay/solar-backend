@@ -27,12 +27,15 @@ manuell_status = False
 schneeModus = False
 
 # kalibrierung: einmaliges Event (True wird einmal an Pico geliefert und dann wieder False)
-#               dient der Kalibrierung/Ausrichtung des Solarmoduls + Gerüst                             
+#               dient der Kalibrierung/Ausrichtung des Solarmoduls + Gerüst
 kalibrierung = False
 
 # letzte_coord / letzte_ip: letzte Konfigurationseinstellungen aus dem Frontend
 letzte_coord = {"latitude": None, "longitude": None}
 letzte_ip = {"ipWLANschuko": None}
+
+# NEU: letzte_schuko: neue WLAN-Steckdose Einstellungen
+letzte_schuko = {"laufzeitSchuko": None, "ipSchuko": None}
 
 # letzte_motor_Zielwert: Zielwerte, die das Frontend setzt und der Pico abholt
 letzte_motor_Zielwert = {"motor1_Zielwert": None, "motor2_Zielwert": None}
@@ -42,6 +45,26 @@ letzte_werkseinstellungbool = False
 
 # last_heartbeat: Unix-Zeitstempel, wann die Steuerungsseite zuletzt "lebt" gemeldet hat
 last_heartbeat = 0.0
+
+
+# =========================================================
+# Helper: IPv4 prüfen (analog zur Frontend-Logik)
+# =========================================================
+def istGueltigeIPv4(ip: str) -> bool:
+    if ip is None:
+        return False
+    parts = str(ip).split(".")
+    if len(parts) != 4:
+        return False
+    for p in parts:
+        if str(p).strip() == "":
+            return False
+        if not str(p).isdigit():
+            return False
+        n = int(p)
+        if n < 0 or n > 255:
+            return False
+    return True
 
 
 # =========================================================
@@ -57,7 +80,6 @@ def receive_getdata():
 
     MAX_ENTRIES = 1000
 
-    # Ein Datensatz aus dem Pico-JSON wird 1:1 in die In-Memory-Liste übernommen
     datenbank.append({
         "wind": data.get("wind"),
         "sonneauf": data.get("sonneauf"),
@@ -70,7 +92,6 @@ def receive_getdata():
         "zeit": data.get("zeit")
     })
 
-    # Speicher begrenzen: ältesten Eintrag entfernen, wenn zu viele vorhanden sind (um RAM nicht zu überlasten)
     if len(datenbank) > MAX_ENTRIES:
         datenbank.pop(0)
 
@@ -80,9 +101,7 @@ def receive_getdata():
 # =========================================================
 # GET /api/data
 # - Website holen die gespeicherten Messdaten
-# - Rückgabe: komplette datenbank-Liste (bis MAX_ENTRIES)
 # =========================================================
-
 @app.route("/api/data", methods=["GET"])
 def get_data():
     return jsonify(datenbank), 200
@@ -91,7 +110,6 @@ def get_data():
 # =========================================================
 # POST /api/motor_Zielwert
 # - Website setzt Zielwerte für Motor 1/2
-# - Pico holt diese Werte später über GET /api/einstellungen
 # =========================================================
 @app.route("/api/motor_Zielwert", methods=["POST"])
 def set_motor_Zielwert():
@@ -100,11 +118,9 @@ def set_motor_Zielwert():
     m1 = data.get("motor1_Zielwert")
     m2 = data.get("motor2_Zielwert")
 
-    # Mindestens ein Zielwert muss vorhanden sein
     if m1 is None and m2 is None:
         return jsonify({"error": "motor1_Zielwert/motor2_Zielwert fehlen"}), 400
 
-    # Zielwerte in Integer umwandeln und speichern
     try:
         if m1 is not None:
             letzte_motor_Zielwert["motor1_Zielwert"] = int(m1)
@@ -119,17 +135,14 @@ def set_motor_Zielwert():
 # =========================================================
 # POST/OPTIONS /api/heartbeat
 # - Steuerung.html sendet regelmäßig ein Lebenszeichen
-# - last_heartbeat wird aktualisiert
 # =========================================================
 @app.route("/api/heartbeat", methods=["POST", "OPTIONS"])
 def heartbeat():
     global last_heartbeat
 
-    # Preflight für CORS
     if request.method == "OPTIONS":
         return ("", 200)
 
-    # JSON ist optional – wird aktuell nicht ausgewertet
     _data = request.get_json(silent=True) or {}
 
     last_heartbeat = time.time()
@@ -138,7 +151,7 @@ def heartbeat():
 
 # =========================================================
 # POST /api/einstellungen
-# - Website setzt Einstellungen (Koordinaten, IP, Werkseinstellung)
+# - Website setzt Einstellungen (Koordinaten, IP, Werkseinstellung, NEU: Schuko Werte)
 # - Pico holt diese Werte später über GET /api/einstellungen
 # =========================================================
 @app.route("/api/einstellungen", methods=["POST"])
@@ -151,6 +164,10 @@ def set_koordinaten_und_ip():
     lon = data.get("longitude")
     ipWLAN = data.get("ipWLANschuko")
     werkseinstellungbool = data.get("werkseinstellungbool")
+
+    # NEU:
+    laufzeitSchuko = data.get("laufzeitSchuko")
+    ipSchuko = data.get("ipSchuko")
 
     # Koordinaten nur gültig, wenn latitude und longitude zusammen gesetzt werden
     if lat is not None or lon is not None:
@@ -175,8 +192,31 @@ def set_koordinaten_und_ip():
             return jsonify({"error": "werkseinstellungbool muss true/false sein"}), 400
         letzte_werkseinstellungbool = werkseinstellungbool
 
+    # NEU: laufzeitSchuko speichern (Integer, 0 erlaubt)
+    if laufzeitSchuko is not None:
+        try:
+            # akzeptiert auch "0" als String
+            letzte_schuko["laufzeitSchuko"] = int(laufzeitSchuko)
+        except (TypeError, ValueError):
+            return jsonify({"error": "laufzeitSchuko muss eine ganze Zahl sein"}), 400
+
+    # NEU: ipSchuko speichern (IPv4, nicht leer)
+    if ipSchuko is not None:
+        ipSchuko = str(ipSchuko).strip()
+        if ipSchuko == "":
+            return jsonify({"error": "ipSchuko darf nicht leer sein"}), 400
+        if not istGueltigeIPv4(ipSchuko):
+            return jsonify({"error": "ipSchuko muss eine gültige IPv4-Adresse sein"}), 400
+        letzte_schuko["ipSchuko"] = ipSchuko
+
     # Wenn nichts Sinnvolles mitgesendet wurde, Fehler zurückgeben
-    if (lat is None and lon is None and ipWLAN is None and werkseinstellungbool is None):
+    if (
+        lat is None and lon is None and
+        ipWLAN is None and
+        werkseinstellungbool is None and
+        laufzeitSchuko is None and
+        ipSchuko is None
+    ):
         return jsonify({"error": "keine gültigen Felder gesendet"}), 400
 
     return jsonify({
@@ -184,31 +224,27 @@ def set_koordinaten_und_ip():
         "latitude": letzte_coord.get("latitude"),
         "longitude": letzte_coord.get("longitude"),
         "ipWLANschuko": letzte_ip.get("ipWLANschuko"),
-        "werkseinstellungbool": letzte_werkseinstellungbool
+        "werkseinstellungbool": letzte_werkseinstellungbool,
+
+        # NEU:
+        "laufzeitSchuko": letzte_schuko.get("laufzeitSchuko"),
+        "ipSchuko": letzte_schuko.get("ipSchuko"),
     }), 200
 
 
 # =========================================================
 # GET /api/einstellungen
 # - Pico fragt diese Route regelmäßig ab, um Steuerwerte zu bekommen
-# - enthält:
-#   - Koordinaten / IP / Werkseinstellungbool
-#   - Motor-Zielwerte
-#   - manuell_status / schneeModus
-#   - Kalibrierung (einmaliges Event)
-# - Auto-Reset von manueller Steuerung
 # =========================================================
 @app.route("/api/einstellungen", methods=["GET"])
 def einstellungen_get():
     global kalibrierung, manuell_status, schneeModus, last_heartbeat
 
-    # Auto-Reset wenn Website weg ist (kein Heartbeat > 60s)
     if (manuell_status or schneeModus):
         if last_heartbeat == 0.0 or (time.time() - last_heartbeat) > 60:
             manuell_status = False
             schneeModus = False
 
-    # Kalibrierung als "Event": einmal liefern, danach wieder auf False setzen
     calib_value = kalibrierung
     kalibrierung = False
 
@@ -216,6 +252,11 @@ def einstellungen_get():
         "latitude": letzte_coord.get("latitude"),
         "longitude": letzte_coord.get("longitude"),
         "ipWLANschuko": letzte_ip.get("ipWLANschuko"),
+
+        # NEU:
+        "laufzeitSchuko": letzte_schuko.get("laufzeitSchuko"),
+        "ipSchuko": letzte_schuko.get("ipSchuko"),
+
         "motor1_Zielwert": letzte_motor_Zielwert.get("motor1_Zielwert"),
         "motor2_Zielwert": letzte_motor_Zielwert.get("motor2_Zielwert"),
         "manuell": manuell_status,
@@ -227,10 +268,6 @@ def einstellungen_get():
 
 # =========================================================
 # POST /api/manuell
-# - Website schaltet manuell/automatik und/oder Schneemodus
-# - erwartet boolean Felder:
-#   - manuellModus
-#   - schneeModus
 # =========================================================
 @app.route("/api/manuell", methods=["POST"])
 def manuell():
@@ -258,8 +295,6 @@ def manuell():
 
 # =========================================================
 # POST /api/calibra
-# - Paneel-Seite sendet ein Kalibrier-Event
-# - Flag wird bei GET /api/einstellungen einmal an den Pico ausgeliefert
 # =========================================================
 @app.route("/api/calibra", methods=["POST"])
 def kalibrierung_post():
