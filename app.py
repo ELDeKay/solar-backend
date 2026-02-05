@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import time
+import re
 
 app = Flask(__name__)
 
@@ -35,7 +36,7 @@ letzte_coord = {"latitude": None, "longitude": None}
 letzte_ip = {"ipWLANschuko": None}
 
 # NEU: letzte_schuko: neue WLAN-Steckdose Einstellungen
-letzte_schuko = {"laufzeitSchuko": None, "ipSchuko": None}
+letzte_schuko = {"laufzeitSchuko": None, "ipSchuko": None, "tzOffset": None}
 
 # letzte_motor_Zielwert: Zielwerte, die das Frontend setzt und der Pico abholt
 letzte_motor_Zielwert = {"motor1_Zielwert": None, "motor2_Zielwert": None}
@@ -64,6 +65,37 @@ def istGueltigeIPv4(ip: str) -> bool:
         n = int(p)
         if n < 0 or n > 255:
             return False
+    return True
+
+
+# =========================================================
+# Helper: tzOffset validieren (Format ±HH:MM, Range -12:00..+14:00)
+# =========================================================
+_TZ_RE = re.compile(r"^[+-](\d{2}):(\d{2})$")
+
+def istGueltigerOffset(offset: str) -> bool:
+    if offset is None:
+        return False
+    offset = str(offset).strip()
+    m = _TZ_RE.match(offset)
+    if not m:
+        return False
+
+    hh = int(m.group(1))
+    mm = int(m.group(2))
+
+    # Minuten nur 00 oder 30 oder 45 sind bei manchen Zonen üblich,
+    # aber du nutzt in deiner UI nur :00 -> wir erlauben generell 00..59
+    if mm < 0 or mm > 59:
+        return False
+
+    sign = 1 if offset[0] == "+" else -1
+    total_minutes = sign * (hh * 60 + mm)
+
+    # erlaubter Bereich grob: -12:00 bis +14:00
+    if total_minutes < -12 * 60 or total_minutes > 14 * 60:
+        return False
+
     return True
 
 
@@ -151,7 +183,7 @@ def heartbeat():
 
 # =========================================================
 # POST /api/einstellungen
-# - Website setzt Einstellungen (Koordinaten, IP, Werkseinstellung, NEU: Schuko Werte)
+# - Website setzt Einstellungen (Koordinaten, IP, Werkseinstellung, Schuko Werte, tzOffset)
 # - Pico holt diese Werte später über GET /api/einstellungen
 # =========================================================
 @app.route("/api/einstellungen", methods=["POST"])
@@ -165,9 +197,12 @@ def set_koordinaten_und_ip():
     ipWLAN = data.get("ipWLANschuko")
     werkseinstellungbool = data.get("werkseinstellungbool")
 
-    # NEU:
+    # Schuko:
     laufzeitSchuko = data.get("laufzeitSchuko")
     ipSchuko = data.get("ipSchuko")
+
+    # NEU: tzOffset
+    tzOffset = data.get("tzOffset")
 
     # Koordinaten nur gültig, wenn latitude und longitude zusammen gesetzt werden
     if lat is not None or lon is not None:
@@ -192,15 +227,14 @@ def set_koordinaten_und_ip():
             return jsonify({"error": "werkseinstellungbool muss true/false sein"}), 400
         letzte_werkseinstellungbool = werkseinstellungbool
 
-    # NEU: laufzeitSchuko speichern (Integer, 0 erlaubt)
+    # laufzeitSchuko speichern (Integer, 0 erlaubt)
     if laufzeitSchuko is not None:
         try:
-            # akzeptiert auch "0" als String
             letzte_schuko["laufzeitSchuko"] = int(laufzeitSchuko)
         except (TypeError, ValueError):
             return jsonify({"error": "laufzeitSchuko muss eine ganze Zahl sein"}), 400
 
-    # NEU: ipSchuko speichern (IPv4, nicht leer)
+    # ipSchuko speichern (IPv4, nicht leer)
     if ipSchuko is not None:
         ipSchuko = str(ipSchuko).strip()
         if ipSchuko == "":
@@ -209,13 +243,23 @@ def set_koordinaten_und_ip():
             return jsonify({"error": "ipSchuko muss eine gültige IPv4-Adresse sein"}), 400
         letzte_schuko["ipSchuko"] = ipSchuko
 
+    # tzOffset speichern (Format ±HH:MM)
+    if tzOffset is not None:
+        tzOffset = str(tzOffset).strip()
+        if tzOffset == "":
+            return jsonify({"error": "tzOffset darf nicht leer sein"}), 400
+        if not istGueltigerOffset(tzOffset):
+            return jsonify({"error": "tzOffset muss im Format ±HH:MM sein (z. B. +01:00) und im Bereich -12:00 bis +14:00 liegen"}), 400
+        letzte_schuko["tzOffset"] = tzOffset
+
     # Wenn nichts Sinnvolles mitgesendet wurde, Fehler zurückgeben
     if (
         lat is None and lon is None and
         ipWLAN is None and
         werkseinstellungbool is None and
         laufzeitSchuko is None and
-        ipSchuko is None
+        ipSchuko is None and
+        tzOffset is None
     ):
         return jsonify({"error": "keine gültigen Felder gesendet"}), 400
 
@@ -226,9 +270,9 @@ def set_koordinaten_und_ip():
         "ipWLANschuko": letzte_ip.get("ipWLANschuko"),
         "werkseinstellungbool": letzte_werkseinstellungbool,
 
-        # NEU:
         "laufzeitSchuko": letzte_schuko.get("laufzeitSchuko"),
         "ipSchuko": letzte_schuko.get("ipSchuko"),
+        "tzOffset": letzte_schuko.get("tzOffset"),
     }), 200
 
 
@@ -253,9 +297,9 @@ def einstellungen_get():
         "longitude": letzte_coord.get("longitude"),
         "ipWLANschuko": letzte_ip.get("ipWLANschuko"),
 
-        # NEU:
         "laufzeitSchuko": letzte_schuko.get("laufzeitSchuko"),
         "ipSchuko": letzte_schuko.get("ipSchuko"),
+        "tzOffset": letzte_schuko.get("tzOffset"),
 
         "motor1_Zielwert": letzte_motor_Zielwert.get("motor1_Zielwert"),
         "motor2_Zielwert": letzte_motor_Zielwert.get("motor2_Zielwert"),
