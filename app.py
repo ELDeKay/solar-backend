@@ -113,14 +113,14 @@ def receive_getdata():
     MAX_ENTRIES = 1000
 
     datenbank.append({
-        "wind": data.get("wind"),
-        "sonneauf": data.get("sonneauf"),
-        "sonneunter": data.get("sonneunter"),
-        "sonnenstunden": data.get("sonnenstunden"),
-        "motor1": data.get("motor1"),
-        "motor2": data.get("motor2"),
-        "spannung": data.get("spannung"),
-        "ampere": data.get("ampere"),
+        "luftfeucht": data.get("luftfeucht"),
+        "temperatur": data.get("temperatur"),
+        "statusTagNacht": data.get("statusTagNacht"),
+        "helligkeit": data.get("helligkeit"),
+        "motorLaeuft": data.get("motorLaeuft"),
+        "zustand": data.get("zustand"),
+        "torAUF": data.get("torAUF"),
+        "torZU": data.get("torZU"),
         "zeit": data.get("zeit")
     })
 
