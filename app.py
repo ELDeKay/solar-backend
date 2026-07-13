@@ -100,46 +100,65 @@ def heartbeat():
 # =========================================================
 @app.route("/api/einstellungen", methods=["POST"])
 def set_koordinaten_und_ip():
-    global letzte_werkseinstellungbool
+    global letzte_werkseinstellungbool, licht
 
     data = request.get_json(silent=True) or {}
 
     lat = data.get("latitude")
     lon = data.get("longitude")
     werkseinstellungbool = data.get("werkseinstellungbool")
+    licht_neu = data.get("licht")
 
-
-    # Koordinaten nur gültig, wenn latitude und longitude zusammen gesetzt werden
+    # Koordinaten speichern
     if lat is not None or lon is not None:
         if lat is None or lon is None:
-            return jsonify({"error": "latitude und longitude müssen zusammen gesendet werden"}), 400
+            return jsonify({
+                "error": "latitude und longitude müssen zusammen gesendet werden"
+            }), 400
+
         try:
             letzte_coord["latitude"] = float(lat)
             letzte_coord["longitude"] = float(lon)
         except (TypeError, ValueError):
-            return jsonify({"error": "latitude/longitude müssen Zahlen sein"}), 400
+            return jsonify({
+                "error": "latitude/longitude müssen Zahlen sein"
+            }), 400
 
-    # Werkseinstellung speichern, wenn boolean
+    # Werkseinstellung speichern
     if werkseinstellungbool is not None:
         if not isinstance(werkseinstellungbool, bool):
-            return jsonify({"error": "werkseinstellungbool muss true/false sein"}), 400
+            return jsonify({
+                "error": "werkseinstellungbool muss true/false sein"
+            }), 400
+
         letzte_werkseinstellungbool = werkseinstellungbool
 
-        # Wenn nichts Sinnvolles mitgesendet wurde
-        if (
-            lat is None and
-            lon is None and
-            werkseinstellungbool is None
-        ):
+    # Licht speichern
+    if licht_neu is not None:
+        if not isinstance(licht_neu, bool):
             return jsonify({
-                "error": "keine gültigen Felder gesendet"
+                "error": "licht muss true/false sein"
             }), 400
+
+        licht = licht_neu
+
+    # Prüfen, ob überhaupt ein gültiges Feld gesendet wurde
+    if (
+        lat is None and
+        lon is None and
+        werkseinstellungbool is None and
+        licht_neu is None
+    ):
+        return jsonify({
+            "error": "keine gültigen Felder gesendet"
+        }), 400
 
     return jsonify({
         "status": "ok",
         "latitude": letzte_coord.get("latitude"),
         "longitude": letzte_coord.get("longitude"),
         "werkseinstellungbool": letzte_werkseinstellungbool,
+        "licht": licht
     }), 200
 
 
@@ -149,14 +168,11 @@ def set_koordinaten_und_ip():
 # =========================================================
 @app.route("/api/einstellungen", methods=["GET"])
 def einstellungen_get():
-
-
-
     return jsonify({
         "latitude": letzte_coord.get("latitude"),
         "longitude": letzte_coord.get("longitude"),
-
-
+        "werkseinstellungbool": letzte_werkseinstellungbool,
+        "licht": licht
     }), 200
 
 # =========================================================
