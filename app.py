@@ -30,9 +30,6 @@ last_heartbeat = 0.0
 # letzte_coord: letzte Konfigurationseinstellungen aus dem Frontend
 letzte_coord = {"latitude": None, "longitude": None}
 
-# letzte_werkseinstellungbool: Factory-Reset-Checkbox (Frontend setzt bool, Pico liest Zustand)
-letzte_werkseinstellungbool = False
-
 
 # =========================================================
 # POST /api/getdata
@@ -95,18 +92,17 @@ def heartbeat():
 
 # =========================================================
 # POST /api/einstellungen
-# - Website setzt Einstellungen (Koordinaten, IP, Werkseinstellung, Schuko Werte, tzOffset)
+# - Website setzt Einstellungen (Koordinaten, IP, Schuko Werte, tzOffset)
 # - Pico holt diese Werte später über GET /api/einstellungen
 # =========================================================
 @app.route("/api/einstellungen", methods=["POST"])
 def set_koordinaten_und_ip():
-    global letzte_werkseinstellungbool, licht
+    global licht
 
     data = request.get_json(silent=True) or {}
 
     lat = data.get("latitude")
     lon = data.get("longitude")
-    werkseinstellungbool = data.get("werkseinstellungbool")
     licht_neu = data.get("licht")
 
     # Koordinaten speichern
@@ -124,15 +120,6 @@ def set_koordinaten_und_ip():
                 "error": "latitude/longitude müssen Zahlen sein"
             }), 400
 
-    # Werkseinstellung speichern
-    if werkseinstellungbool is not None:
-        if not isinstance(werkseinstellungbool, bool):
-            return jsonify({
-                "error": "werkseinstellungbool muss true/false sein"
-            }), 400
-
-        letzte_werkseinstellungbool = werkseinstellungbool
-
     # Licht speichern
     if licht_neu is not None:
         if not isinstance(licht_neu, bool):
@@ -146,7 +133,6 @@ def set_koordinaten_und_ip():
     if (
         lat is None and
         lon is None and
-        werkseinstellungbool is None and
         licht_neu is None
     ):
         return jsonify({
@@ -157,7 +143,6 @@ def set_koordinaten_und_ip():
         "status": "ok",
         "latitude": letzte_coord.get("latitude"),
         "longitude": letzte_coord.get("longitude"),
-        "werkseinstellungbool": letzte_werkseinstellungbool,
         "licht": licht
     }), 200
 
@@ -171,7 +156,6 @@ def einstellungen_get():
     return jsonify({
         "latitude": letzte_coord.get("latitude"),
         "longitude": letzte_coord.get("longitude"),
-        "werkseinstellungbool": letzte_werkseinstellungbool,
         "licht": licht
     }), 200
 
