@@ -121,7 +121,8 @@ def receive_getdata():
         "zustand": data.get("zustand"),
         "torAUF": data.get("torAUF"),
         "torZU": data.get("torZU"),
-        "zeit": data.get("zeit")
+        "zeit": data.get("zeit"),
+        "licht": data.get("licht")
     })
 
     if len(datenbank) > MAX_ENTRIES:
