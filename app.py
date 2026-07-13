@@ -133,8 +133,6 @@ def set_koordinaten_und_ip():
         werkseinstellungbool is None
 ):
     return jsonify({"error": "keine gültigen Felder gesendet"}), 400
-    ):
-        return jsonify({"error": "keine gültigen Felder gesendet"}), 400
 
     return jsonify({
         "status": "ok",
