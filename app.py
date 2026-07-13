@@ -26,6 +26,7 @@ datenbank = []
 #                 vom Pico über /api/einstellungen abgefragt)
 manuell_status = False
 schneeModus = False
+licht = False
 
 # kalibrierung: einmaliges Event (True wird einmal an Pico geliefert und dann wieder False)
 #               dient der Kalibrierung/Ausrichtung des Solarmoduls + Gerüst
