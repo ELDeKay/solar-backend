@@ -25,7 +25,7 @@ datenbank = []
 
 licht = False
 
-
+last_heartbeat = 0.0
 
 # letzte_coord: letzte Konfigurationseinstellungen aus dem Frontend
 letzte_coord = {"latitude": None, "longitude": None}
@@ -45,7 +45,7 @@ def receive_getdata():
     if data is None:
         return jsonify({"error": "no data found"}), 400
 
-    MAX_ENTRIES = 1000
+    MAX_ENTRIES = 5000
 
     datenbank.append({
         "luftfeucht": data.get("luftfeucht"),
@@ -128,12 +128,11 @@ def set_koordinaten_und_ip():
 
     # Wenn nichts Sinnvolles mitgesendet wurde, Fehler zurückgeben
     if (
-        lat is None and lon is None and
-        ipWLAN is None and
-        werkseinstellungbool is None and
-        laufzeitSchuko is None and
-        ipSchuko is None and
-        tzOffset is None
+        lat is None and
+        lon is None and
+        werkseinstellungbool is None
+):
+    return jsonify({"error": "keine gültigen Felder gesendet"}), 400
     ):
         return jsonify({"error": "keine gültigen Felder gesendet"}), 400
 
