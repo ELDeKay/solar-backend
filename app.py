@@ -125,14 +125,15 @@ def set_koordinaten_und_ip():
             return jsonify({"error": "werkseinstellungbool muss true/false sein"}), 400
         letzte_werkseinstellungbool = werkseinstellungbool
 
-
-    # Wenn nichts Sinnvolles mitgesendet wurde, Fehler zurückgeben
-    if (
-        lat is None and
-        lon is None and
-        werkseinstellungbool is None
-):
-    return jsonify({"error": "keine gültigen Felder gesendet"}), 400
+        # Wenn nichts Sinnvolles mitgesendet wurde
+        if (
+            lat is None and
+            lon is None and
+            werkseinstellungbool is None
+        ):
+            return jsonify({
+                "error": "keine gültigen Felder gesendet"
+            }), 400
 
     return jsonify({
         "status": "ok",
